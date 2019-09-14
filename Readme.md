@@ -1,17 +1,19 @@
-#Contains algos to perform
+#Contains NLP algos to perform
 1. Generate Text Summary
-2. Generate fill in the blank questions from text content
-3. Find relations in the data
-4. Decode the reference
-5. Predict next possible word (n-gram)
-6. Create keyword filter    
+    - fetch sentence similarity score based on sentence vectors generated using:
+        -- Word frequency
+        -- Word embeddings
+2. Find relations in the data - To be Done
+3. Decode the reference - To be Done
+4. Generate fill in the blank questions from text content - To be Done
+5. Predict next possible word (n-gram) - To be Done
+6. Create keyword filter - To be Done
 
-
-#Main steps involved
-1. Tokenization (word, sentence)
-2. lemma    
-3. NER
-4. POS tagging
+Base logic:
+1. Text wrangling
+2. POS tagging
+3. Lemmatize
+4. NER
 
 #All algos based on NLTK
 1. Use nltk.download('puntk') - Tokenizer library

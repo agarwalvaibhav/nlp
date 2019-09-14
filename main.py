@@ -2,19 +2,20 @@
 # coding: utf-8
 
 from nltk.corpus import stopwords
+from nltk.corpus import wordnet
 from nltk.cluster.util import cosine_distance
+from nltk.stem import WordNetLemmatizer
 from nltk import sent_tokenize
 from nltk import word_tokenize
+from nltk import pos_tag
 from sklearn.metrics.pairwise import cosine_similarity
+from gensim.summarization import summarize
 import numpy as np
 import argparse as ap
 import re
 import networkx as nx
 
 def sentence_similarity_word_frequency(sent1, sent2):
-    sent1 = [w.lower() for w in sent1.split()]
-    sent2 = [w.lower() for w in sent2.split()]
-
     all_words = list(set(sent1 + sent2))
 
     vector1 = [0] * len(all_words)
@@ -53,7 +54,29 @@ def get_sentence_vectors(sentences, word_embeddings):
         sentence_vectors.append(v)
     return sentence_vectors
 
-def build_similarity_matrix(sentences):
+def pos_tagging(sentences):
+    pos = [pos_tag(word_tokenize(s)) for s in sentences]
+    return pos
+
+def get_wordnet_pos(pos):
+    """Map POS tag to first character lemmatize() accepts"""
+    tag = pos[0].upper()
+    tag_dict = {"J": wordnet.ADJ,
+                "N": wordnet.NOUN,
+                "V": wordnet.VERB,
+                "R": wordnet.ADV}
+
+    return tag_dict.get(tag, wordnet.NOUN)
+
+def lemmatize(lemma, pos_sentence, stop_words):
+    lwords = list()
+    for w in pos_sentence:
+        if w[0] in stop_words or not w[0].isalpha():
+            continue
+        lwords.extend([w[0], lemma.lemmatize(w[0], pos=get_wordnet_pos(w[1]))])
+    return list(set(lwords))
+
+def build_similarity_matrix(sentences, stop_words):
     # Create an empty similarity matrix
     sm1 = np.zeros((len(sentences), len(sentences)))
     sm2 = np.zeros([len(sentences), len(sentences)])
@@ -61,6 +84,11 @@ def build_similarity_matrix(sentences):
     #create sentence vector using word_embeddings
     word_embeddings = get_word_embeddings()
     sentence_vectors = get_sentence_vectors(sentences, word_embeddings)
+
+    #generate lemma words to generate similarity index based on word frequency
+    lemma = WordNetLemmatizer()
+    pos_sentences = pos_tagging(sentences)
+    lemma_sentences = [lemmatize(lemma, s, stop_words) for s in pos_sentences]
 
     for i in range(len(sentences)):
         for j in range(len(sentences)):
@@ -84,7 +112,7 @@ def generate_summary(sentences, n=50):
     clean_sentences = [remove_stopwords(s, stop_words) for s in sentences]
 
     #Generate Similary Martix across sentences
-    sentence_similarity_martix = build_similarity_matrix(clean_sentences)
+    sentence_similarity_martix = build_similarity_matrix(clean_sentences, stop_words)
 
     for sm in sentence_similarity_martix:
         summarize_text = []
@@ -101,6 +129,7 @@ def generate_summary(sentences, n=50):
         #output the summarize text
         print("\nSummary:\n\n", "\n".join(summarize_text))
     return
+
 
 def read_article(file_name):
     file = open(file_name, "r")
@@ -130,4 +159,8 @@ if __name__ == '__main__':
     
     #Read text and split it
     words, sentences =  read_article(ip)
+
+    #summary using prebuilt util
+    print("\nSummary using gensim:\n")
+    print(summarize((' ').join(sentences), ratio=n/100))
     generate_summary( sentences, n)
